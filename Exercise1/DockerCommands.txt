@@ -1,0 +1,131 @@
+# DATABASE
+
+docker container prune
+# first i remove every stop container
+
+docker run --name mongodb --rm -d -p 27017:27017 mongo
+
+--name(assign a container name)
+--rm (Remove the container after exit) 
+-d(detach) 
+-p(publish list) 
+27017:27017 (The image expose this port)
+
+docker ps
+# verify if the mongo image is create
+
+docker image prune -a
+# remove older images
+
+#BACKEND
+
+docker build -t goals-node .
+# build a docker image based on Dockerfile
+
+docker run --name goals-backend --rm goals-node
+# Run a container but this have a issue "FAILED TO CONNECT TO MONGODB"
+# to solve that replace 'mongodb://localhost:27017/course-goals' for 
+# 'mongodb://host.docker.internal:27017/course-goals' in app.js
+
+docker build -t goals-node .
+# build again because you change the source code
+
+docker run --name goals-backend --rm goals-node
+# Now Run again and you see "CONNECTED TO MONGODB" but i have a new problem
+# the backend is not connected to the frontend because the exposed ports
+
+docker stop goals-backend
+# Stop the container
+
+docker run --name goals-backend --rm -d -p 80:80 goals-node
+# Run again but now with the detach mode and the publish mode to publish the 80:80 port
+
+docker ps
+# Check if the image is create
+
+#FRONTEND 
+
+docker build -t goals-react .
+-t (tag name)
+# Build this docker file 
+
+docker run --name goals-frontend --rm -d -p 3000:3000 goals-react
+# Now run this but now i have other problem the development server stop
+
+docker run --name goals-frontend --rm -p 3000:3000 -it goals-react
+
+-i, --interactive                    Keep STDIN open even if not attached
+    --ip string                      IPv4 address (e.g., 172.30.100.104)
+    --ip6 string                     IPv6 address (e.g., 2001:db8::33)
+    --ipc string                     IPC mode to use
+    --isolation string               Container isolation technology
+    --kernel-memory bytes            Kernel memory limit
+-t, --tty                            Allocate a pseudo-TTY
+    --ulimit ulimit                  Ulimit options (default [])
+
+# The react need the -it mode, now the development is ok
+
+# Stop all the 3 containers
+docker stop goals-backend
+docker stop goals-frontend
+docker stop mongodb
+
+# Verify if the containers stops
+docker ps
+docker ps -a
+
+# NETWORK
+
+docker network create goals-net
+# Create a network to connect the containers
+
+docker run --name mongodb --rm -d --network goals-net mongo 
+# Create the container without the -p and the port and connect
+# in the created network
+
+docker build -t goals-node .
+# Before run this command go to app.js and change "'mongodb://host.docker.internal:27017/course-goals'"
+# to "'mongodb://mongodb:27017/course-goals'"
+
+docker run --name goals-backend --rm -d --network goals-net goals-node
+# Create the container without the -p and the port and connect
+# in the created network
+
+docker ps
+# Check the containers
+
+docker build -t goals-react .
+# Before run this command go to /frontend/src/app.js and change 
+# to "'http://localhost/goals'" 
+
+docker run --name goals-frontend --rm -p 3000:3000 -it goals-react
+# Create the container and now the exercise is done
+
+docker run --name goals-backend --rm -d -p 80:80 --network goals-net goals-node
+# Connect and publish the containers and now everything is fine
+
+# ADDING VOLUMES
+
+docker stop mongodb
+# Stop the mongodb container
+
+docker run --name mongodb -v data:/data/db --rm -d --network goals-net mongo
+# Add a volume to save the data 
+
+docker stop mongodb
+# Stop the mongodb container
+
+docker run --name mongodb -v data:/data/db --rm -d --network goals-net -e MONGO_INITDB_ROOT_USERNAME=max -e MONGO_INITDB_ROOT_PASSWORD=secret mongo
+# Add a username and password for security
+
+docker build -t goals-node . 
+#build the image again after insert the username and password in backend/app.js
+
+docker run --name goals-backend -v D:\Docker-Ex2\backend:/app -v logs:/app/logs -v /app/node_modules -d --rm -p 80:80 --network goals-net goals-node
+#connect the backend now and add 3 VOLUMES
+
+docker run -v D:\Docker-Ex2\frontend\src:/app/src --name goals-frontend --rm -p 3000:3000 -it goals-react
+# connect the frontend and add a volume
+
+docker build -t goals-react .
+# Build the image
